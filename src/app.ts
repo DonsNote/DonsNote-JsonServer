@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 
 import artistRoutes from "./routes/artist";
 import authRoutes from "./routes/auth";
