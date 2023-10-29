@@ -9,6 +9,7 @@ import userRoutes from "./routes/user";
 const app = express();
 
 app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, 'DB', 'Images')));
 
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
