@@ -6,5 +6,5 @@ export interface Busking {
     endTime : Date;
     latitude : DoubleRange;
     longitude : DoubleRange;
-    
+
 }

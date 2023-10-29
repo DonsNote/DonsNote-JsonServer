@@ -1,14 +1,23 @@
 import express, { Request, Response } from "express";
-import { saveData } from "../\butils/saveData";
+import { saveData } from "../utils/saveData";
+import upload from "../utils/saveImage";
 const router = express.Router();
 
 router.get("/", (req: Request, res: Response) => {
   // 사용자 목록 가져오기
 });
 
-router.post("/", (req: Request, res: Response) => {
-    const newId = saveData("./DB/artists.json", req.body);
-    res.send({ message: "Artist saved successfully!", id: newId });
+router.post("/", upload.single('images'), (req: Request, res: Response) => {
+  const file = req.file;
+  if (!file) {
+      return res.status(400).send({ message: "Please upload an image." });
+  }
+
+  const artist = req.body;
+  artist.artistImageURL = file.path;
+
+  const newId = saveData("artists.json", artist);
+  res.send({ message: "Artist saved successfully!", id: newId });
 });
 
 router.delete("/:id", (req: Request, res: Response) => {

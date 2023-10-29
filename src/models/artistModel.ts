@@ -6,7 +6,7 @@ export interface Artist {
     id : number;
     artistName : string;
     artistInfo : string;
-    artistImage : string;
+    artistImageURL : string;
 
     genres : string;
     youtubeURL : string;

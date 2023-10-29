@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { saveData } from "../\butils/saveData";
+import { saveData } from "../utils/saveData";
 const router = express.Router();
 
 router.get("/", (req: Request, res: Response) => {
@@ -7,7 +7,7 @@ router.get("/", (req: Request, res: Response) => {
 });
 
 router.post("/", (req: Request, res: Response) => {
-    const newId = saveData("./DB/buskings.json", req.body);
+    const newId = saveData("buskings.json", req.body);
     res.send({ message: "Busking saved successfully!", id: newId });
 });
 
