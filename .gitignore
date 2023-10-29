@@ -5,4 +5,4 @@ lib
 .DS_Store
 .idea
 *.pem
-/DB/
+src/DB/
