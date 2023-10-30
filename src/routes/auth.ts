@@ -8,16 +8,16 @@ const router = express.Router();
 const SECRET_KEY = "your_secret_key";
 
 const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
+const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 
 router.post("/", async (req, res) => {
   const { username, password } = req.body;
-
-  const users = JSON.parse(fs.readFileSync(authFilePath, "utf8"));
+  const usersAuth = JSON.parse(fs.readFileSync(authFilePath, "utf8"));
 
   // 사용자가 이미 존재하는 경우
-  if (users[username]) {
+  if (usersAuth[username]) {
     // 저장된 해시된 비밀번호와 제공된 비밀번호 비교
-    const isPasswordValid = await bcrypt.compare(password, users[username].password);
+    const isPasswordValid = await bcrypt.compare(password, usersAuth[username].password);
 
     if (isPasswordValid) {
       // 비밀번호가 일치하면 JWT 토큰 발행
@@ -31,14 +31,29 @@ router.post("/", async (req, res) => {
 
   // 새로운 사용자 등록
   const hashedPassword = await bcrypt.hash(password, 10);
-  users[username] = {
+  usersAuth[username] = {
     password: hashedPassword,
   };
-  fs.writeFileSync(authFilePath, JSON.stringify(users));
+  fs.writeFileSync(authFilePath, JSON.stringify(usersAuth));
 
-  // JWT 토큰 발행
-  const token = jwt.sign({ username }, SECRET_KEY);
-  res.send({ message: "Registration successful!", token });
+  // Create a new user profile with default or null values in users.json
+  const users = JSON.parse(fs.readFileSync(usersFilePath, "utf8"));
+  let newId = 1;
+  while (users[newId]) {
+    newId++;
+  }
+  users[newId] = {
+    id: newId,
+    userName: null,
+    userInfo: null,
+    userImageURL: null,
+    userArtist: null,
+  };
+  fs.writeFileSync(usersFilePath, JSON.stringify(users));
+
+  const token = jwt.sign({ id: newId }, SECRET_KEY);
+  res.send({ message: "Registration and login successful!", token });
 });
+
 
 export default router;

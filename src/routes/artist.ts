@@ -14,7 +14,7 @@ router.post("/", upload.single('images'), (req: Request, res: Response) => {
   }
 
   const artist = req.body;
-  artist.artistImageURL = file.path;
+  artist.artistImageURL = `http://54.180.143.129:3000/images/$(file.filename)`;
 
   const newId = saveData("artists.json", artist);
   res.send({ message: "Artist saved successfully!", id: newId });
