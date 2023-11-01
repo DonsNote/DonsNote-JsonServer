@@ -1,7 +1,7 @@
 import axios from "axios";
 import dotenv from 'dotenv';
 import express from "express";
-import fs from "fs";
+import fs from 'fs';
 import jwt from "jsonwebtoken";
 import NodeRSA from 'node-rsa';
 import path from "path";
@@ -9,15 +9,14 @@ import { generateClientSecret } from "../utils/makeCliSecret";
 dotenv.config();
 
 const router = express.Router();
-const SECRET_KEY = "your_secret_key";
+const SECRET_KEY = process.env.SECRET_KEY;
 
-const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 
 router.post("/apple-login", async (req, res) => {
   const { identityToken, authorizationCode } = req.body;
 
-  // 1. Identity Token의 Header 추출 및 검증
+  // 1. Identity Token의 Header 추출
   const tokenHeaders = parseHeaders(identityToken);
 
   // 2. Apple의 공개키 가져오기
@@ -31,10 +30,18 @@ router.post("/apple-login", async (req, res) => {
   // 3. Identity Token 검증
   const publicKey = generatePublicKey(matchingKey);
   const claims = parseClaims(identityToken, publicKey);
-  const client_id = process.env.CLIENT_ID || "default_client_id";
+  const client_id = process.env.CLIENT_ID || "default";
   validateClaims(claims, client_id);
 
-  // 4. 사용자 데이터베이스에서 사용자 찾기 또는 생성
+
+  // 4. Apple의 refreshToken 및 accessToken 받아오기
+  console.log(authorizationCode)
+
+  const appleTokenResponse = await fetchAppleTokens(authorizationCode);
+  const refreshToken = appleTokenResponse.refresh_token;
+
+
+  // 5. 사용자 데이터베이스에서 사용자 찾기 또는 생성
   const userId = claims.sub;
 
   const users = JSON.parse(fs.readFileSync(usersFilePath, "utf8"));
@@ -52,12 +59,8 @@ router.post("/apple-login", async (req, res) => {
     fs.writeFileSync(usersFilePath, JSON.stringify(users));
   }
 
-  // 5. Access Token 발급
-  const token = jwt.sign({ userId }, SECRET_KEY);
-
-  // 6. Apple의 refreshToken 및 accessToken 받아오기
-  const appleTokenResponse = await fetchAppleTokens(authorizationCode);
-  const refreshToken = appleTokenResponse.refresh_token;
+  // 6. Access Token 발급
+  const token = jwt.sign({ userId }, SECRET_KEY || "Default");
 
   res.send({ token, refreshToken });
 });
@@ -70,7 +73,6 @@ function parseHeaders(token: string): any {
   }
   return decodedToken.header;
 }
-
 async function fetchApplePublicKeys(): Promise<any[]> {
   const response = await axios.get('https://appleid.apple.com/auth/keys');
   return response.data.keys;
@@ -103,7 +105,7 @@ function validateClaims(claims: any, clientId: string): void {
 
 // Apple의 authorizationCode를 사용하여 refreshToken 및 accessToken을 받아오는 함수
 async function fetchAppleTokens(authorizationCode: string): Promise<any> {
-  const clientId = process.env.CLIENT_ID;
+  const clientId = process.env.TEAM_ID;
   const clientSecret = generateClientSecret();
 
   const response = await axios.post('https://appleid.apple.com/auth/token', {
@@ -111,7 +113,13 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
     client_secret: clientSecret,
     code: authorizationCode,
     grant_type: "authorization_code"
-  });
+  },
+  {
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded'
+    }
+  }
+  );
 
   return response.data;
 }
