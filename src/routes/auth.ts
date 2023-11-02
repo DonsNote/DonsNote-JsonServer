@@ -33,7 +33,7 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
       client_secret: clientSecret,
       code: authorizationCode,
       grant_type: "authorization_code",
-      redirect_uri: "https://aesopos.co.kr:3000/apple-response"
+      redirect_uri: "http://aesopos.co.kr:3000/apple-response"
     }),
     {
       headers: {
