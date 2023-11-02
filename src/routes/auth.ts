@@ -4,7 +4,6 @@ import express from "express";
 import fs from 'fs/promises';
 import jwt from "jsonwebtoken";
 import path from "path";
-import qs from 'qs';
 import { generateClientSecret } from "../utils/makeCliSecret";
 dotenv.config();
 
@@ -63,7 +62,7 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   const clientId = process.env.CLIENT_ID;
   const clientSecret = generateClientSecret();
 
-  const response = await axios.post('https://appleid.apple.com/auth/token', qs.stringify({
+  const response = await axios.post('https://appleid.apple.com/auth/token',({
     client_id: clientId,
     client_secret: clientSecret,
     code: authorizationCode,
@@ -77,4 +76,4 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   return response.data;
 }
 
-export default router; 
+export default router;
