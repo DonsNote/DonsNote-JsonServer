@@ -62,6 +62,7 @@ router.post("/apple-response", async (req, res) => {
 async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   const clientId = process.env.CLIENT_ID;
   const clientSecret = generateClientSecret();
+  console.log('clics:', clientSecret);
 
   // URLSearchParams 객체 생성
   const tokenData = new URLSearchParams();
