@@ -20,6 +20,7 @@ const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
 router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
+    console.log('authCode:', authorizationCode)
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
     console.log(appleTokenResponse);
 

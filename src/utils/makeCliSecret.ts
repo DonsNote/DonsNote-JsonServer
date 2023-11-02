@@ -12,7 +12,7 @@ export function generateClientSecret(): string {
     const sub = process.env.CLIENT_ID;
 
     const iat = Math.floor(Date.now() / 1000);
-    const exp = iat + 15000000;
+    const exp = iat + 15777000;
 
     const token = jwt.sign(
         {
@@ -32,6 +32,6 @@ export function generateClientSecret(): string {
             }
         }
     );
-console.log('clisc:', token);
+    
     return token;
 }
