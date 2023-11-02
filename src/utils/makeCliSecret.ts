@@ -6,13 +6,13 @@ dotenv.config();
 
 export function generateClientSecret(): string {
     const privateKeyPath = path.join(__dirname, '..', '..', 'AuthKey_22Y4RW292W.p8')
-    const privateKey = fs.readFileSync(privateKeyPath);
+    const privateKey = fs.readFileSync(privateKeyPath).toString();
     const iss = process.env.TEAM_ID;
     const kid = process.env.KEY_ID;
     const sub = process.env.CLIENT_ID;
 
-    const iat = Date.now();
-    const exp = iat + (1000 * 60 * 5);
+    const iat = Math.floor(Date.now() / 1000);
+    const exp = iat + 15000000;
 
     const token = jwt.sign(
         {
