@@ -34,7 +34,7 @@ router.post("/apple-login", async (req, res) => {
       block: [],
       userName: "User",
       userInfo: "Hi, there!",
-      userImageURL: "http://54.180.143.129:3000/images/default.jpg"
+      userImageURL: "https://aesopos.co.kr/images/default.jpg"
     };
     await fs.writeFile(usersFilePath, JSON.stringify(users));
 
@@ -68,7 +68,7 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
     client_secret: clientSecret,
     code: authorizationCode,
     grant_type: "authorization_code",
-    redirect_uri: "http://aesopos.co.kr:3000/apple-response"
+    redirect_uri: "https://aesopos.co.kr/apple-response"
   }), {
     headers: {
       'content-type': 'application/x-www-form-urlencoded'
