@@ -24,12 +24,14 @@ export function generateClientSecret(): string {
         },
         privateKey,
         {
+            algorithm: 'ES256',
             header: {
                 alg: 'ES256',
-                kid: kid
+                kid: kid,
+                typ: undefined
             }
         }
     );
-
+console.log('clisc:', token);
     return token;
 }
