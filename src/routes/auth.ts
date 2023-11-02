@@ -21,6 +21,7 @@ router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
+    console.log(appleTokenResponse);
 
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
@@ -62,18 +63,24 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   const clientId = process.env.CLIENT_ID;
   const clientSecret = generateClientSecret();
 
-  const response = await axios.post('https://appleid.apple.com/auth/token',({
-    client_id: clientId,
-    client_secret: clientSecret,
-    code: authorizationCode,
-    grant_type: "authorization_code",
-    redirect_uri: "https://aesopos.co.kr/apple-response"
-  }), {
+  // URLSearchParams 객체 생성
+  const tokenData = new URLSearchParams();
+  tokenData.append('client_id', clientId as string); // clientId가 undefined일 수 없도록 처리
+  tokenData.append('client_secret', clientSecret);
+  tokenData.append('code', authorizationCode);
+  tokenData.append('grant_type', "authorization_code");
+  tokenData.append('redirect_uri', "https://aesopos.co.kr/apple-response");
+
+  // axios.post에 문자열로 변환된 tokenData 전달
+  const response = await axios.post('https://appleid.apple.com/auth/oauth2/v2/token', tokenData.toString(), {
     headers: {
       'content-type': 'application/x-www-form-urlencoded'
     }
   });
+
   return response.data;
 }
+
+
 
 export default router;
