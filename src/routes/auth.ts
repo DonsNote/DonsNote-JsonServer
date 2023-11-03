@@ -93,8 +93,6 @@ router.post('/apple-revoke', async (req, res) => {
     // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
     if (revokeResponse.status === 200) {
       // auth.json에서 사용자 정보 삭제
-      console.log('revokeRE', revokeResponse);
-      console.log('useridcheck', userId);
       delete authData[userId];
       await fs.writeFile(authFilePath, JSON.stringify(authData));
 
