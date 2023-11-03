@@ -54,8 +54,7 @@ router.post("/apple-login", async (req, res) => {
   }
 });
 
-// 토큰 폐기 라우터
-router.post('/revoke-token', async (req, res) => {
+router.post('/apple-revoke', async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
   
@@ -68,7 +67,7 @@ router.post('/revoke-token', async (req, res) => {
     const decoded = jwt.verify(token, secret) as jwt.JwtPayload;
     const userId = decoded.id; // 토큰에서 사용자 ID 추출
 
-    // 이후 로직...
+    // auth.json에서 사용자의 refresh_token을 찾기
     const authData = JSON.parse(await fs.readFile(authFilePath, 'utf8'));
     const refreshToken = authData[userId]?.refreshToken;
     if (!refreshToken) {
@@ -87,19 +86,51 @@ router.post('/revoke-token', async (req, res) => {
     tokenData.append('token_type_hint', 'refresh_token');
 
     // Apple의 토큰 폐기 API에 POST 요청 보내기
-    await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
+    const revokeResponse = await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
 
-    // 요청 성공 시 응답
-    res.status(200).send({ message: 'Refresh token has been revoked successfully.' });
-  } catch (error) {
-    // 에러 처리
-    res.status(500).send({ message: 'Failed to revoke refresh token.' });
+    // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
+    if (revokeResponse.status === 200) {
+      // auth.json에서 사용자 정보 삭제
+      delete authData[userId];
+      await fs.writeFile(authFilePath, JSON.stringify(authData));
+
+      // users.json에서 사용자 정보 삭제
+      const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
+      delete users[userId];
+      await fs.writeFile(usersFilePath, JSON.stringify(users));
+
+      res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
+    } else {
+      // Apple 토큰 폐기 요청이 실패했을 경우
+      res.status(revokeResponse.status).send({ message: 'Failed to revoke Apple token.' });
+    }
+  }  catch (error: unknown) {
+    // error가 AxiosError 인스턴스인지 확인
+    if (axios.isAxiosError(error)) {
+      // 이제 error는 AxiosError 타입으로 간주됩니다.
+      res.status(error.response?.status || 500).send({
+        message: 'Failed to revoke refresh token.',
+        error: error.response?.data
+      });
+    } else if (error instanceof Error) {
+      // 일반적인 Error 인스턴스인 경우
+      res.status(500).send({
+        message: 'Failed to revoke refresh token.',
+        error: error.message
+      });
+    } else {
+      // error가 Error 인스턴스도 아니고 AxiosError도 아닌 경우
+      res.status(500).send({
+        message: 'An unknown error occurred.'
+      });
+    }
   }
 });
+
 
 // apple response 받기
 router.post("/apple-response", async (req, res) => {
