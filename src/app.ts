@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+dotenv.config();
+
 import express from "express";
 import path from "path";
 import artistRoutes from "./routes/artist";
@@ -7,7 +9,6 @@ import buskingRoutes from "./routes/busking";
 import memberRoutes from "./routes/member";
 import userRoutes from "./routes/user";
 import { authenticateToken } from "./utils/authenticateToken";
-dotenv.config();
 
 
 const app = express();
