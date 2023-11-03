@@ -16,6 +16,7 @@ if (!secret) {
 
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
+const responseFilePath = path.join(__dirname, '..', 'DB', 'auth', 'response.json');
 
 router.post("/apple-login", async (req, res) => {
   try {
@@ -38,6 +39,13 @@ router.post("/apple-login", async (req, res) => {
     };
     await fs.writeFile(usersFilePath, JSON.stringify(users));
 
+    const authData = JSON.parse(await fs.readFile(authFilePath, "utf8"));
+    authData[newId] = {
+      id: newId,
+      refreshToken: appleTokenResponse.refresh_token
+    };
+    await fs.writeFile(authFilePath, JSON.stringify(authData));
+
     const token = jwt.sign({ id: newId }, secret);
     res.send({ token });
   } catch (error) {
@@ -46,12 +54,59 @@ router.post("/apple-login", async (req, res) => {
   }
 });
 
+// 토큰 폐기 라우터
+router.post('/revoke-token', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).send({ message: 'Token is required.' });
+  }
+
+  try {
+    // 토큰 검증
+    const decoded = jwt.verify(token, secret) as jwt.JwtPayload;
+    const userId = decoded.id; // 토큰에서 사용자 ID 추출
+
+    // 이후 로직...
+    const authData = JSON.parse(await fs.readFile(authFilePath, 'utf8'));
+    const refreshToken = authData[userId]?.refreshToken;
+    if (!refreshToken) {
+      return res.status(404).send({ message: 'Refresh token not found.' });
+    }
+
+    // 클라이언트 시크릿 생성
+    const clientId = process.env.CLIENT_ID;
+    const clientSecret = generateClientSecret();
+
+    // Apple의 토큰 폐기 API에 요청을 보낼 데이터 구성
+    const tokenData = new URLSearchParams();
+    tokenData.append('client_id', clientId as string);
+    tokenData.append('client_secret', clientSecret);
+    tokenData.append('token', refreshToken);
+    tokenData.append('token_type_hint', 'refresh_token');
+
+    // Apple의 토큰 폐기 API에 POST 요청 보내기
+    await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    // 요청 성공 시 응답
+    res.status(200).send({ message: 'Refresh token has been revoked successfully.' });
+  } catch (error) {
+    // 에러 처리
+    res.status(500).send({ message: 'Failed to revoke refresh token.' });
+  }
+});
+
 // apple response 받기
 router.post("/apple-response", async (req, res) => {
   try {
     const responseData = req.body;
-    const authData = JSON.stringify(responseData, null, 2);
-    await fs.writeFile(authFilePath, authData);
+    const appleReData = JSON.stringify(responseData, null, 2);
+    await fs.writeFile(responseFilePath, appleReData);
     res.status(200).send({ message: "Data saved successfully" });
   } catch (error) {
     console.error("Error saving apple response data:", error);
