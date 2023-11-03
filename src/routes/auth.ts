@@ -21,6 +21,7 @@ router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
+    console.log('appleResponse:', appleTokenResponse);
 
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
@@ -61,7 +62,6 @@ router.post("/apple-response", async (req, res) => {
 async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   const clientId = process.env.CLIENT_ID;
   const clientSecret = generateClientSecret();
-  console.log('clics:', clientSecret);
 
   // URLSearchParams 객체 생성
   const tokenData = new URLSearchParams();
