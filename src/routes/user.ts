@@ -44,7 +44,7 @@ router.patch("/", upload.single('images'), (req: Request, res: Response) => {
     const updatedData = req.body;
 
     if (file) {
-      updatedData.userImageURL = `http://54.180.143.129:3000/images/${file.filename}`;
+      updatedData.userImageURL = `https://aesopos.co.kr/images/${file.filename}`;
     }
 
     users[userId] = { // id 값을 사용하여 사용자 정보 업데이트

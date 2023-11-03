@@ -20,9 +20,7 @@ const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
 router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
-    console.log('authCode:', authorizationCode)
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
-    console.log(appleTokenResponse);
 
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
@@ -67,7 +65,7 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
 
   // URLSearchParams 객체 생성
   const tokenData = new URLSearchParams();
-  tokenData.append('client_id', clientId as string); // clientId가 undefined일 수 없도록 처리
+  tokenData.append('client_id', clientId as string);
   tokenData.append('client_secret', clientSecret);
   tokenData.append('code', authorizationCode);
   tokenData.append('grant_type', "authorization_code");
@@ -82,7 +80,5 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
 
   return response.data;
 }
-
-
 
 export default router;
