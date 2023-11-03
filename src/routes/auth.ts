@@ -4,7 +4,8 @@ import fs from 'fs/promises';
 import jwt, { JwtPayload } from "jsonwebtoken";
 import path from "path";
 import { fetchAppleTokens } from "../utils/getRefreshToken";
-import { revokeAppleLogin } from "../utils/revokeAppleLogin";
+import { generateClientSecret } from "../utils/makeCliSecret";
+
 
 
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
@@ -30,7 +31,7 @@ router.post("/apple-login", async (req, res) => {
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
     while (users[newId]) { newId++; }
-
+    
     users[newId] = {
       id: newId,
       artistId: null,
@@ -68,10 +69,12 @@ router.post("/apple-login", async (req, res) => {
   }
 });
 
+
+
 router.post('/apple-revoke', async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
-
+  
   if (!token) {
     return res.status(401).send({ message: 'Token is required.' });
   }
@@ -88,22 +91,47 @@ router.post('/apple-revoke', async (req, res) => {
       return res.status(404).send({ message: 'Refresh token not found.' });
     }
 
-    await revokeAppleLogin(refreshToken);
+    // 클라이언트 시크릿 생성
+    const clientId = process.env.CLIENT_ID;
+    const clientSecret = generateClientSecret();
 
-    // auth.json에서 사용자 정보 삭제
-    delete authData[userId];
-    await fs.writeFile(authFilePath, JSON.stringify(authData));
+    // Apple의 토큰 폐기 API에 요청을 보낼 데이터 구성
+    const tokenData = new URLSearchParams();
+    tokenData.append('client_id', clientId as string);
+    tokenData.append('client_secret', clientSecret);
+    tokenData.append('token', refreshToken);
+    tokenData.append('token_type_hint', 'refresh_token');
 
-    // users.json에서 사용자 정보 삭제
-    const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
-    delete users[userId];
-    await fs.writeFile(usersFilePath, JSON.stringify(users));
+    // Apple의 토큰 폐기 API에 POST 요청 보내기
+    const revokeResponse = await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-    res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
-  } catch (error) {
+    // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
+    if (revokeResponse.status === 200) {
+      console.log(revokeResponse);
+
+      // auth.json에서 사용자 정보 삭제
+      delete authData[userId];
+      await fs.writeFile(authFilePath, JSON.stringify(authData));
+
+      // users.json에서 사용자 정보 삭제
+      const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
+      delete users[userId];
+      await fs.writeFile(usersFilePath, JSON.stringify(users));
+
+      res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
+
+    } else {
+      // Apple 토큰 폐기 요청이 실패했을 경우
+      res.status(revokeResponse.status).send({ message: 'Failed to revoke Apple token.' });
+    }
+  }  catch (error: unknown) {
     // error가 AxiosError 인스턴스인지 확인
     if (axios.isAxiosError(error)) {
-      // error는 AxiosError 타입으로 간주됩니다.
+      // 이제 error는 AxiosError 타입으로 간주됩니다.
       res.status(error.response?.status || 500).send({
         message: 'Failed to revoke refresh token.',
         error: error.response?.data
