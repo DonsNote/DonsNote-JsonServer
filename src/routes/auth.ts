@@ -22,8 +22,6 @@ router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
-    console.log('appleResponse:', appleTokenResponse);
-
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
     while (users[newId]) { newId++; }
