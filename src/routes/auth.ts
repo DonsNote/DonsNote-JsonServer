@@ -1,27 +1,32 @@
 import axios from "axios";
-import dotenv from 'dotenv';
 import express from "express";
 import fs from 'fs/promises';
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import path from "path";
-import { generateClientSecret } from "../utils/makeCliSecret";
-dotenv.config();
+import { fetchAppleTokens } from "../utils/getRefreshToken";
+import { revokeAppleLogin } from "../utils/revokeAppleLogin";
 
-const router = express.Router();
-const secret = process.env.SECRET_KEY;
-
-if (!secret) {
-  throw new Error('SECRET_KEY is not defined in the env variables.');
-}
 
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
 const responseFilePath = path.join(__dirname, '..', 'DB', 'auth', 'response.json');
+const router = express.Router();
+const secret = process.env.SECRET_KEY;
+if (!secret) {
+  throw new Error('SECRET_KEY is not defined in the env variables.');
+}
 
 router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
+    if (!authorizationCode) {
+      return res.status(400).send({ message: 'Authorization code is required.' });
+    }
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
+    if (!appleTokenResponse || !appleTokenResponse.refresh_token) {
+      return res.status(500).send({ message: 'Failed to retrieve refresh token from Apple.' });
+    }
+
     const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     let newId = 1;
     while (users[newId]) { newId++; }
@@ -46,23 +51,34 @@ router.post("/apple-login", async (req, res) => {
 
     const token = jwt.sign({ id: newId }, secret);
     res.send({ token });
-  } catch (error) {
+
+  } catch (error: unknown) { // TypeScript에서 error는 unknown 타입으로 처리됩니다.
     console.error('Error during Apple login:', error);
-    res.status(500).send({ message: 'Internal Server Error' });
+
+    let errorMessage = 'An error occurred during the Apple login process.';
+    if (error instanceof Error) {
+      errorMessage = error.message; // 이제 error.message는 안전하게 접근할 수 있습니다.
+      if (axios.isAxiosError(error)) {
+        // error가 AxiosError 인스턴스인 경우, HTTP 응답에 포함된 에러 메시지에 접근할 수 있습니다.
+        errorMessage = error.response?.data?.error || error.message;
+      }
+    }
+
+    res.status(500).send({ message: 'Internal Server Error', error: errorMessage });
   }
 });
 
 router.post('/apple-revoke', async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).send({ message: 'Token is required.' });
   }
 
   try {
     // 토큰 검증
-    const decoded = jwt.verify(token, secret) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     const userId = decoded.id; // 토큰에서 사용자 ID 추출
 
     // auth.json에서 사용자의 refresh_token을 찾기
@@ -72,44 +88,22 @@ router.post('/apple-revoke', async (req, res) => {
       return res.status(404).send({ message: 'Refresh token not found.' });
     }
 
-    // 클라이언트 시크릿 생성
-    const clientId = process.env.CLIENT_ID;
-    const clientSecret = generateClientSecret();
+    await revokeAppleLogin(refreshToken);
 
-    // Apple의 토큰 폐기 API에 요청을 보낼 데이터 구성
-    const tokenData = new URLSearchParams();
-    tokenData.append('client_id', clientId as string);
-    tokenData.append('client_secret', clientSecret);
-    tokenData.append('token', refreshToken);
-    tokenData.append('token_type_hint', 'refresh_token');
+    // auth.json에서 사용자 정보 삭제
+    delete authData[userId];
+    await fs.writeFile(authFilePath, JSON.stringify(authData));
 
-    // Apple의 토큰 폐기 API에 POST 요청 보내기
-    const revokeResponse = await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    // users.json에서 사용자 정보 삭제
+    const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
+    delete users[userId];
+    await fs.writeFile(usersFilePath, JSON.stringify(users));
 
-    // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
-    if (revokeResponse.status === 200) {
-      // auth.json에서 사용자 정보 삭제
-      delete authData[userId];
-      await fs.writeFile(authFilePath, JSON.stringify(authData));
-
-      // users.json에서 사용자 정보 삭제
-      const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
-      delete users[userId];
-      await fs.writeFile(usersFilePath, JSON.stringify(users));
-
-      res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
-    } else {
-      // Apple 토큰 폐기 요청이 실패했을 경우
-      res.status(revokeResponse.status).send({ message: 'Failed to revoke Apple token.' });
-    }
-  }  catch (error: unknown) {
+    res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
+  } catch (error) {
     // error가 AxiosError 인스턴스인지 확인
     if (axios.isAxiosError(error)) {
-      // 이제 error는 AxiosError 타입으로 간주됩니다.
+      // error는 AxiosError 타입으로 간주됩니다.
       res.status(error.response?.status || 500).send({
         message: 'Failed to revoke refresh token.',
         error: error.response?.data
@@ -142,27 +136,5 @@ router.post("/apple-response", async (req, res) => {
     res.status(500).send({ message: "Error saving data" });
   }
 });
-
-async function fetchAppleTokens(authorizationCode: string): Promise<any> {
-  const clientId = process.env.CLIENT_ID;
-  const clientSecret = generateClientSecret();
-
-  // URLSearchParams 객체 생성
-  const tokenData = new URLSearchParams();
-  tokenData.append('client_id', clientId as string);
-  tokenData.append('client_secret', clientSecret);
-  tokenData.append('code', authorizationCode);
-  tokenData.append('grant_type', "authorization_code");
-  tokenData.append('redirect_uri', "https://aesopos.co.kr/apple-response");
-
-  // axios.post에 문자열로 변환된 tokenData 전달
-  const response = await axios.post('https://appleid.apple.com/auth/oauth2/v2/token', tokenData.toString(), {
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded'
-    }
-  });
-
-  return response.data;
-}
 
 export default router;

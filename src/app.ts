@@ -1,11 +1,12 @@
+import dotenv from 'dotenv';
 import express from "express";
 import path from "path";
-
 import artistRoutes from "./routes/artist";
 import authRoutes from "./routes/auth";
 import buskingRoutes from "./routes/busking";
 import memberRoutes from "./routes/member";
 import userRoutes from "./routes/user";
+dotenv.config();
 
 const app = express();
 
