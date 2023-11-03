@@ -1,11 +1,9 @@
 import axios from "axios";
-import dotenv from 'dotenv';
 import express from "express";
 import fs from 'fs/promises';
 import jwt from "jsonwebtoken";
 import path from "path";
 import { generateClientSecret } from "../utils/makeCliSecret";
-dotenv.config();
 
 const router = express.Router();
 const secret = process.env.SECRET_KEY;

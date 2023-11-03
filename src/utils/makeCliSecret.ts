@@ -1,8 +1,6 @@
-import dotenv from 'dotenv';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
-dotenv.config();
 
 export function generateClientSecret(): string {
     const privateKeyPath = path.join(__dirname, '..', '..', 'AuthKey_22Y4RW292W.p8')
