@@ -6,6 +6,7 @@ const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 
 export const getUserById = (id: number): User | undefined => {
     const usersData = fs.readFileSync(usersFilePath, 'utf8');
-    const users: User[] = JSON.parse(usersData);
-    return users.find(user => user.id === id);
+    const users: (User | null)[] = JSON.parse(usersData);
+    const user = users.find(user => user !== null && user.id === id);
+    return user === null ? undefined : user; // null을 undefined로 변환
 };
