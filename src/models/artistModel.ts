@@ -13,7 +13,7 @@ export interface Artist {
     instagramURL : string;
     soundcloudURL : string;
 
-    members? : Member;
-    buskings? : Busking;
+    members? : Member[];
+    buskings? : Busking[];
 
 }
