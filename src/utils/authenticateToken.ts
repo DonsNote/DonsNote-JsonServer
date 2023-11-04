@@ -19,6 +19,21 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         req.user = user;
         next();
     } catch (error) {
-        return res.status(401).json({ message: "Invalid token" });
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        switch (errorMessage) {
+            case "Token has expired":
+                return res.status(401).json({ message: "Token has expired" });
+            case "Invalid token":
+                return res.status(401).json({ message: "Invalid token" });
+            case "Token not active":
+                return res.status(401).json({ message: "Token not active" });
+            default:
+                return res.status(500).json({ message: "Internal server error" });
+        }
     }
 };
+
+
+
+
+
