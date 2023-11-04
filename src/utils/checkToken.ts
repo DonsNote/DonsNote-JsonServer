@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 
-const SECRET_KEY = process.env.SECRET_KEY;
+const secret = process.env.SECRET_KEY as string;
 
 export const verifyToken = (token: string) => {
   try {
-    const decoded = jwt.verify(token, SECRET_KEY || "Dafault");
+    const decoded = jwt.verify(token, secret);
     return decoded;
   } catch (error) {
     throw new Error("Invalid token");
