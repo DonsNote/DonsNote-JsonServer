@@ -3,7 +3,6 @@ import express from "express";
 import fs from 'fs/promises';
 import jwt from "jsonwebtoken";
 import path from "path";
-import { Auth } from '../models/authModel';
 import { User } from '../models/userModel';
 import { generateClientSecret } from "../utils/makeCliSecret";
 
@@ -91,13 +90,13 @@ router.post('/apple-revoke', async (req, res) => {
     // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
     if (revokeResponse.status === 200) {
       // auth.json에서 사용자 정보 삭제
-      const deleteAuthData = authData.filter((auth: Auth) => auth.id !== userId);
-      await fs.writeFile(authFilePath, JSON.stringify(deleteAuthData, null, 2));
+      delete authData[userId.toString()]; // 수정된 부분
+      await fs.writeFile(authFilePath, JSON.stringify(authData, null, 2));
 
       // users.json에서 사용자 정보 삭제
       const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
       const deleteUsers = users.filter((user: User) => user.id !== userId);
-      await fs.writeFile(usersFilePath, JSON.stringify(deleteUsers));
+      await fs.writeFile(usersFilePath, JSON.stringify(deleteUsers, null, 2));
 
       res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
     } else {
