@@ -2,14 +2,13 @@ import express, { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import { User } from '../models/userModel';
-import { authenticateToken } from "../utils/authenticateToken";
+import { userValidationRules, validateUser } from '../utils/ModelCheck/userModelCheck';
 import upload from "../utils/saveImage";
-import { userValidationRules, validateUser } from '../utils/userModelCheck';
 
 const router = express.Router();
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 
-router.get("/", authenticateToken, (req: Request, res: Response) => {
+router.get("/", (req: Request, res: Response) => {
   // authenticateToken 미들웨어에서 추가된 user 사용
   const user: User = req.user as User;
 
@@ -17,9 +16,9 @@ router.get("/", authenticateToken, (req: Request, res: Response) => {
   res.json(user);
 });
 
-router.patch("/", userValidationRules, validateUser, upload.single('image'), authenticateToken, async (req: Request, res: Response) => {
+router.patch("/", userValidationRules, validateUser, upload.single('image'), async (req: Request, res: Response) => {
   // authenticateToken 미들웨어에서 추가된 user 사용
-  const user: User | undefined = req.user as User | undefined;
+  const user: User = req.user as User;
   
   // user가 유효한지 확인
   if (!user) {
@@ -37,8 +36,7 @@ router.patch("/", userValidationRules, validateUser, upload.single('image'), aut
 
   try {
     // 파일에서 사용자 목록을 비동기적으로 읽어옵니다.
-    const usersData = await fs.promises.readFile(usersFilePath, "utf8");
-    const users: User[] = JSON.parse(usersData);
+    const users: User[] = JSON.parse(await fs.promises.readFile(usersFilePath, "utf8"));
 
     // userId에 해당하는 사용자 찾기
     const userIndex = users.findIndex(u => u.id === user.id);
@@ -52,7 +50,7 @@ router.patch("/", userValidationRules, validateUser, upload.single('image'), aut
     // 업데이트된 사용자 목록을 파일에 비동기적으로 다시 씁니다.
     await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
 
-    res.send({ message: "User profile updated successfully!" });
+    res.send({ message: "User profile updated successfully!" , user });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "An error occurred while updating the profile" });
