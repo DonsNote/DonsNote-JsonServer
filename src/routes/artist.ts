@@ -10,9 +10,28 @@ const router = express.Router();
 const artistFilePath = path.join(__dirname, '..', 'DB', 'artists.json');
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 
-router.get("/", (req: Request, res: Response) => {
-  // 사용자 목록 가져오기
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const artistId = req.user?.artistId;
+    if (!artistId) {
+      return res.status(400).json({ message: "Artist ID is missing from the user data." });
+    }
+
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    const artists = JSON.parse(artistsData);
+
+    const artist = artists.find((artist: Artist) => artist.id === artistId);
+    if (!artist) {
+      return res.status(404).json({ message: "Artist not found." });
+    }
+
+    res.status(200).json(artist);
+
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
 });
+
 
 router.post("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
   try {
