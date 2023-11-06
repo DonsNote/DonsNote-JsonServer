@@ -3,18 +3,28 @@ import express from "express";
 import fs from 'fs/promises';
 import jwt from "jsonwebtoken";
 import path from "path";
+import { Artist } from "../models/artistModel";
+import { Busking } from "../models/buskingModel";
+import { Member } from "../models/memberModel";
 import { User } from '../models/userModel';
 import { generateClientSecret } from "../utils/makeCliSecret";
 
 const router = express.Router();
 const secret = process.env.SECRET_KEY;
+const resecret = process.env.RESECRET_KEY;
 
 if (!secret) {
   throw new Error('SECRET_KEY is not defined in the env variables.');
 }
+if (!resecret) {
+  throw new Error('RESECRET_KEY is not defined in the env variables.');
+}
 
-const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
 const authFilePath = path.join(__dirname, '..', 'DB', 'auth', 'auth.json');
+const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
+const artistsFilePath = path.join(__dirname, '..', 'DB', 'artists.json');
+const membersFilePath = path.join(__dirname, '..', 'DB', 'members.json');
+const buskingsFilePath = path.join(__dirname, '..', 'DB', 'buskings.json');
 const responseFilePath = path.join(__dirname, '..', 'DB', 'auth', 'response.json');
 
 router.post("/apple-login", async (req, res) => {
@@ -41,8 +51,10 @@ router.post("/apple-login", async (req, res) => {
     };
     await fs.writeFile(authFilePath, JSON.stringify(authData));
 
-    const token = jwt.sign({ id: newId }, secret);
-    res.send({ token });
+    const token = jwt.sign({ id: newId }, secret, { expiresIn: '3d' });
+    const retoken = jwt.sign({ id: newId }, resecret);
+    res.send({ retoken, token });
+
   } catch (error) {
     console.error('Error during Apple login:', error);
     res.status(500).send({ message: 'Internal Server Error' });
@@ -52,7 +64,7 @@ router.post("/apple-login", async (req, res) => {
 router.post('/apple-revoke', async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).send({ message: 'Token is required.' });
   }
@@ -90,39 +102,77 @@ router.post('/apple-revoke', async (req, res) => {
     // 폐기 요청이 성공했다면, 서버의 데이터베이스에서 사용자 정보 삭제
     if (revokeResponse.status === 200) {
       // auth.json에서 사용자 정보 삭제
-      delete authData[userId.toString()]; // 수정된 부분
+      delete authData[userId.toString()];
       await fs.writeFile(authFilePath, JSON.stringify(authData, null, 2));
 
       // users.json에서 사용자 정보 삭제
       const users = JSON.parse(await fs.readFile(usersFilePath, 'utf8'));
-      const deleteUsers = users.filter((user: User) => user.id !== userId);
-      await fs.writeFile(usersFilePath, JSON.stringify(deleteUsers, null, 2));
+      const userToDelete = users.find((user: User) => user.id === userId);
+
+      // 해당 사용자에게 artistId가 있는 경우
+      if (userToDelete.artistId) {
+        const artists = JSON.parse(await fs.readFile(artistsFilePath, 'utf8'));
+        const artistToDelete = artists.find((artist: Artist) => artist.id === userToDelete.artistId);
+
+        // 해당 아티스트의 members 배열에 있는 멤버 ID를 사용하여 members.json에서 해당 멤버들을 찾아 삭제
+        const members = JSON.parse(await fs.readFile(membersFilePath, 'utf8'));
+        const membersToDelete = artistToDelete.members;
+        const updatedMembers = members.filter((member: Member) => !membersToDelete.includes(member.id));
+        await fs.writeFile(membersFilePath, JSON.stringify(updatedMembers, null, 2));
+
+        // 해당 아티스트의 buskings 배열에 있는 버스킹 ID를 사용하여 buskings.json에서 해당 버스킹을 찾아 삭제
+        const buskings = JSON.parse(await fs.readFile(buskingsFilePath, 'utf8'));
+        const buskingsToDelete = artistToDelete.buskings;
+        const updatedBuskings = buskings.filter((busking: Busking) => !buskingsToDelete.includes(busking.id));
+        await fs.writeFile(buskingsFilePath, JSON.stringify(updatedBuskings, null, 2));
+
+        // 마지막으로, artists.json에서 해당 아티스트를 삭제
+        const updatedArtists = artists.filter((artist: Artist) => artist.id !== userToDelete.artistId);
+        await fs.writeFile(artistsFilePath, JSON.stringify(updatedArtists, null, 2));
+      }
+      const updatedUsers = users.filter((user: User) => user.id !== userId);
+      await fs.writeFile(usersFilePath, JSON.stringify(updatedUsers, null, 2));
 
       res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
     } else {
       // Apple 토큰 폐기 요청이 실패했을 경우
       res.status(revokeResponse.status).send({ message: 'Failed to revoke Apple token.' });
     }
-  }  catch (error: unknown) {
+  } catch (error: unknown) {
     // error가 AxiosError 인스턴스인지 확인
     if (axios.isAxiosError(error)) {
       // 이제 error는 AxiosError 타입으로 간주됩니다.
-      res.status(error.response?.status || 500).send({
-        message: 'Failed to revoke refresh token.',
-        error: error.response?.data
-      });
+      res.status(error.response?.status || 500).send({ message: 'Failed to revoke refresh token.', error: error.response?.data });
     } else if (error instanceof Error) {
       // 일반적인 Error 인스턴스인 경우
-      res.status(500).send({
-        message: 'Failed to revoke refresh token.',
-        error: error.message
-      });
+      res.status(500).send({ message: 'Failed to revoke refresh token.', error: error.message });
     } else {
       // error가 Error 인스턴스도 아니고 AxiosError도 아닌 경우
-      res.status(500).send({
-        message: 'An unknown error occurred.'
-      });
+      res.status(500).send({ message: 'An unknown error occurred.' });
     }
+  }
+});
+
+router.get('/token', async (req, res) => {
+  const retoken = req.headers['authorization']?.split(' ')[1];
+
+  if (!retoken) {
+    return res.status(401).send({ message: 'Refresh Token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(retoken, resecret) as jwt.JwtPayload;
+    if (!decoded.id) {
+      return res.status(403).send({ message: 'Invalid Token Payload' });
+    }
+
+    const token = jwt.sign({ id: decoded.id }, secret, { expiresIn: '3d' });
+    const refreshtoken = jwt.sign({ id: decoded.id }, resecret);
+
+    res.json({ token, refreshtoken })
+
+  } catch (error) {
+    res.status(403).send({ message: 'Invalid or Expired Refresh Token' });
   }
 });
 

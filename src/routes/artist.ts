@@ -14,7 +14,7 @@ router.get("/", (req: Request, res: Response) => {
   // 사용자 목록 가져오기
 });
 
-router.post("/", artistValidationRules, validateArtist, upload.single('image'), async(req: Request, res: Response) => {
+router.post("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     const artist: Artist = req.body;
@@ -29,7 +29,7 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
     artist.id = newId;
 
     artists.push(artist);
-    
+
     await fs.promises.writeFile(artistFilePath, JSON.stringify(artists));
 
     const users: User[] = JSON.parse(await fs.promises.readFile(usersFilePath, "utf8"));
@@ -42,9 +42,9 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(201).json({ message: "Artist added successfully" , artist });
+    res.status(201).json({ message: "Artist added successfully", artist });
   } catch (error) {
-  // 에러 처리
+    // 에러 처리
     res.status(500).json({ message: "Internal server error" });
   }
 });

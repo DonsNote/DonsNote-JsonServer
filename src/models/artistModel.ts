@@ -1,6 +1,3 @@
-import { Busking } from './buskingModel';
-import { Member } from './memberModel';
-
 export interface Artist {
 
     id : number;
@@ -13,7 +10,7 @@ export interface Artist {
     instagramURL : string;
     soundcloudURL : string;
 
-    members? : Member[];
-    buskings? : Busking[];
+    members? : number[];
+    buskings? : number[];
 
 }
