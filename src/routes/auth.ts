@@ -154,22 +154,22 @@ router.post('/apple-revoke', async (req, res) => {
 });
 
 router.get('/token', async (req, res) => {
-  const retoken = req.headers['authorization']?.split(' ')[1];
+  const refreshtoken = req.headers['authorization']?.split(' ')[1];
 
-  if (!retoken) {
+  if (!refreshtoken) {
     return res.status(401).send({ message: 'Refresh Token is required' });
   }
 
   try {
-    const decoded = jwt.verify(retoken, resecret) as jwt.JwtPayload;
+    const decoded = jwt.verify(refreshtoken, resecret) as jwt.JwtPayload;
     if (!decoded.id) {
       return res.status(403).send({ message: 'Invalid Token Payload' });
     }
 
     const token = jwt.sign({ id: decoded.id }, secret, { expiresIn: '3d' });
-    const refreshtoken = jwt.sign({ id: decoded.id }, resecret);
+    const retoken = jwt.sign({ id: decoded.id }, resecret);
 
-    res.json({ token, refreshtoken })
+    res.json({ token, retoken })
 
   } catch (error) {
     res.status(403).send({ message: 'Invalid or Expired Refresh Token' });
