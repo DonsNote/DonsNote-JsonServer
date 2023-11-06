@@ -13,7 +13,7 @@ router.get("/", (req: Request, res: Response) => {
   const user: User = req.user as User;
 
   // 사용자 정보 반환
-  res.json(user);
+  res.json( user );
 });
 
 router.patch("/", userValidationRules, validateUser, upload.single('image'), async (req: Request, res: Response) => {

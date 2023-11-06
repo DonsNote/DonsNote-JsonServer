@@ -42,7 +42,8 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(201).json({ artist });
+    res.status(201).json( artist );
+
   } catch (error) {
     // 에러 처리
     res.status(500).json({ message: "Internal server error" });
