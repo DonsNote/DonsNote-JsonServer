@@ -36,6 +36,39 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/all/", async (req: Request, res: Response) => {
+  try {
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    const artists = JSON.parse(artistsData);
+
+    res.status(200).json(artists);
+  } catch (error) {
+
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
+router.get("/myArt/", async (req: Request, res: Response) => {
+  try {
+    // 현재 로그인한 사용자의 정보를 가져옵니다.
+    const user: User = req.user as User;
+
+    // 사용자가 팔로우하는 아티스트 ID 목록을 가져옵니다.
+    const followedArtistIds = user.follow;
+
+    // artists.json 파일에서 모든 아티스트 데이터를 읽어옵니다.
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    const allArtists: Artist[] = JSON.parse(artistsData);
+
+    // 사용자가 팔로우하는 아티스트들의 정보를 필터링합니다.
+    const followedArtists = allArtists.filter(artist => followedArtistIds.includes(artist.id));
+
+    res.status(200).json(followedArtists);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
 
 router.post("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
   try {

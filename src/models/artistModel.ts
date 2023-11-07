@@ -12,5 +12,6 @@ export interface Artist {
 
     members? : number[];
     buskings? : number[];
+    followers? : number[];
 
 }
