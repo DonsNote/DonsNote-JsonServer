@@ -2,6 +2,8 @@ import express, { Request, Response } from "express";
 import fs from 'fs';
 import path from "path";
 import { Artist } from "../models/artistModel";
+import { Busking } from "../models/buskingModel";
+import { Member } from "../models/memberModel";
 import { User } from '../models/userModel';
 import { artistValidationRules, validateArtist } from '../utils/ModelCheck/artistModelCheck';
 import upload from "../utils/saveImage";
@@ -9,6 +11,8 @@ import upload from "../utils/saveImage";
 const router = express.Router();
 const artistFilePath = path.join(__dirname, '..', 'DB', 'artists.json');
 const usersFilePath = path.join(__dirname, '..', 'DB', 'users.json');
+const membersFilePath = path.join(__dirname, '..', 'DB', 'members.json');
+const buskingsFilePath = path.join(__dirname, '..', 'DB', 'buskings.json');
 
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -61,7 +65,7 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(201).json( artist );
+    res.status(201).json(artist);
 
   } catch (error) {
     // 에러 처리
@@ -76,20 +80,45 @@ router.delete("/", async (req: Request, res: Response) => {
   }
 
   try {
+    // 아티스트 데이터를 읽어옵니다.
     const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
     let artists: Artist[] = JSON.parse(artistsData);
 
-    const artistIndex = artists.findIndex((artist) => artist.id === artistId);
-    if (artistIndex === -1) {
+    // 해당 아티스트를 찾아 멤버와 버스킹 ID를 가져옵니다.
+    const artist = artists.find((artist) => artist.id === artistId);
+    if (!artist) {
       return res.status(404).json({ message: "Artist not found." });
     }
-    artists.splice(artistIndex, 1);
 
+    // 멤버 데이터를 읽어옵니다.
+    if (artist.members) {
+      const membersData = await fs.promises.readFile(membersFilePath, "utf8");
+      let allMembers = JSON.parse(membersData);
+
+      // 멤버 배열에서 해당 아티스트의 멤버를 제거합니다.
+      allMembers = allMembers.filter((member : Member) => !artist.members?.includes(member.id));
+      await fs.promises.writeFile(membersFilePath, JSON.stringify(allMembers));
+    }
+
+    // 버스킹 데이터를 읽어옵니다.
+    if (artist.buskings) {
+      const buskingsData = await fs.promises.readFile(buskingsFilePath, "utf8");
+      let allBuskings = JSON.parse(buskingsData);
+
+      // 버스킹 배열에서 해당 아티스트의 버스킹을 제거합니다.
+      allBuskings = allBuskings.filter((busking : Busking) => !artist.buskings?.includes(busking.id));
+      await fs.promises.writeFile(buskingsFilePath, JSON.stringify(allBuskings));
+    }
+
+    // 아티스트를 artists 배열에서 제거합니다.
+    artists = artists.filter((artist) => artist.id !== artistId);
     await fs.promises.writeFile(artistFilePath, JSON.stringify(artists));
 
+    // 사용자 데이터를 읽어옵니다.
     const usersData = await fs.promises.readFile(usersFilePath, "utf8");
     let users: User[] = JSON.parse(usersData);
 
+    // 해당 아티스트와 연결된 사용자의 artistId를 null로 설정합니다.
     const userIndex = users.findIndex((user) => user.artistId === artistId);
     if (userIndex !== -1) {
       users[userIndex].artistId = null;
@@ -101,6 +130,7 @@ router.delete("/", async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error", error: error });
   }
 });
+
 
 
 router.patch("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
