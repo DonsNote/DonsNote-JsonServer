@@ -1,7 +1,7 @@
 export interface User {
 
     id: number;
-    artistId : number;
+    artistId : number | null;
     follow : number[];
     block : number[];
     userName: string;

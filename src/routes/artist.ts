@@ -69,12 +69,66 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
   }
 });
 
-router.delete("/:id", (req: Request, res: Response) => {
-  // 사용자 삭제하기
+router.delete("/", async (req: Request, res: Response) => {
+  const artistId = req.user?.artistId;
+  if (!artistId) {
+    return res.status(400).json({ message: "Artist ID is missing from the user data." });
+  }
+
+  try {
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    let artists: Artist[] = JSON.parse(artistsData);
+
+    const artistIndex = artists.findIndex((artist) => artist.id === artistId);
+    if (artistIndex === -1) {
+      return res.status(404).json({ message: "Artist not found." });
+    }
+    artists.splice(artistIndex, 1);
+
+    await fs.promises.writeFile(artistFilePath, JSON.stringify(artists));
+
+    const usersData = await fs.promises.readFile(usersFilePath, "utf8");
+    let users: User[] = JSON.parse(usersData);
+
+    const userIndex = users.findIndex((user) => user.artistId === artistId);
+    if (userIndex !== -1) {
+      users[userIndex].artistId = null;
+      await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
 });
 
-router.patch("/:id", (req: Request, res: Response) => {
-  // 사용자 정보 수정하기
+
+router.patch("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
+  const artistId = req.user?.artistId
+  const updateData = req.body;
+  if (req.file) {
+    updateData.artistImageURL = `https://aesopos.co.kr/images/${req.file.filename}`;
+  }
+
+  try {
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    let artists: Artist[] = JSON.parse(artistsData);
+
+    const artistIndex = artists.findIndex((artist) => artist.id === artistId);
+    if (artistIndex === -1) {
+      return res.status(404).json({ message: "Artist not found." });
+    }
+
+    // 기존 아티스트 정보를 업데이트합니다.
+    artists[artistIndex] = { ...artists[artistIndex], ...updateData };
+
+    await fs.promises.writeFile(artistFilePath, JSON.stringify(artists));
+
+    res.status(200).json(artists[artistIndex]);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
 });
+
 
 export default router;
