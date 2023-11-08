@@ -93,7 +93,7 @@ router.post('/apple-revoke', async (req, res) => {
     tokenData.append('token_type_hint', 'refresh_token');
 
     // Apple의 토큰 폐기 API에 POST 요청 보내기
-    const revokeResponse = await axios.post('https://appleid.apple.com/auth/oauth2/v2/revoke', tokenData.toString(), {
+    const revokeResponse = await axios.post('https://appleid.apple.com/auth/revoke', tokenData.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -203,7 +203,7 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   tokenData.append('redirect_uri', "https://aesopos.co.kr/apple-response");
 
   // axios.post에 문자열로 변환된 tokenData 전달
-  const response = await axios.post('https://appleid.apple.com/auth/oauth2/v2/token', tokenData.toString(), {
+  const response = await axios.post('https://appleid.apple.com/auth/token', tokenData.toString(), {
     headers: {
       'content-type': 'application/x-www-form-urlencoded'
     }
