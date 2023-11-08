@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 
 export const buskingValidationRules = [
 body('id').optional().isNumeric(),
+body('artistId').optional().isNumeric(),
 body('artistImageURL').optional().isString(),
 body('startTime').optional().isDate(),
 body('endTime').optional().isDate(),

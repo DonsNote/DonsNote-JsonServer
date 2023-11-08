@@ -1,6 +1,7 @@
 export interface Busking {
 
     id : number;
+    artistId : number;
     artistImageURL : string;
     buskingInfo : string;
     startTime : Date;

@@ -36,6 +36,28 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/target/", async (req: Request, res: Response) => {
+  try {
+    const artistId = req.body;
+    if (!artistId) {
+      return res.status(400).json({ message: "Artist ID is missing from the user data." });
+    }
+
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    const artists = JSON.parse(artistsData);
+
+    const artist = artists.find((artist: Artist) => artist.id === artistId);
+    if (!artist) {
+      return res.status(404).json({ message: "Artist not found." });
+    }
+
+    res.status(200).json(artist);
+
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
 router.get("/all/", async (req: Request, res: Response) => {
   try {
     const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
