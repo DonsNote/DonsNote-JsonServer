@@ -25,9 +25,27 @@ router.get("/all/", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/now/", (req: Request, res: Response) => {
-  // 사용자 목록 가져오기
+router.get("/now/", async (req: Request, res: Response) => {
+  const now = new Date();
+
+  try {
+    const buskingData = await fs.promises.readFile(buskingFilePath, "utf8");
+    let buskings: Busking[] = JSON.parse(buskingData);
+
+    // 현재 시간에 진행 중인 버스킹들만 필터링합니다.
+    let activeBuskings = buskings.filter((busking) => {
+      const startTime = new Date(busking.startTime);
+      const endTime = new Date(busking.endTime);
+      return startTime <= now && now < endTime;
+    });
+
+    res.status(200).json(activeBuskings);
+  } catch (error) {
+    // 에러 처리
+    res.status(500).json({ message: "Not found Now Busking" });
+  }
 });
+
 
 router.post("/", buskingValidationRules, validateBusking, async (req: Request, res: Response) => {
   try {
