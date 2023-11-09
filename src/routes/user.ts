@@ -99,7 +99,7 @@ router.post("/follow/", async (req: Request, res: Response) => {
       return res.status(404).send({ message: "Artist not found" });
     }
 
-    users[userIndex].follow = users[userIndex].follow || [];
+    artists[artistIndex].followers = artists[artistIndex].followers || [];
 
     if (artists[artistIndex].followers.includes(user.id)) {
       return res.status(409).send({ message: "Artist already has the user as a follower" });
@@ -145,6 +145,8 @@ router.post("/unfollow/", async (req: Request, res: Response) => {
       return res.status(409).send({ message: "User is not following the artist" });
     }
 
+    users[userIndex].follow = users[userIndex].follow || [];
+
     users[userIndex].follow = users[userIndex].follow.filter(id => id !== artistId);
 
     const artistIndex = artists.findIndex(a => a.id === artistId);
@@ -156,6 +158,8 @@ router.post("/unfollow/", async (req: Request, res: Response) => {
     if (!artists[artistIndex].followers.includes(user.id)) {
       return res.status(409).send({ message: "Artist does not have this user as a follower" });
     }
+
+    artists[artistIndex].followers = artists[artistIndex].followers || [];
 
     artists[artistIndex].followers = artists[artistIndex].followers.filter(id => id !== user.id);
 
