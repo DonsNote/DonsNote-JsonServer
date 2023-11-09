@@ -10,9 +10,9 @@ export interface Artist {
     instagramURL : string;
     soundcloudURL : string;
 
-    members? : number[];
-    buskings? : number[];
-    followers? : number[];
-    block? : number[];
+    members : number[];
+    buskings : number[];
+    followers : number[];
+    block : number[];
 
 }

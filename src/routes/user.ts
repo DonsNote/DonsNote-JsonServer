@@ -15,13 +15,15 @@ router.get("/", (req: Request, res: Response) => {
   const user: User = req.user as User;
 
   // 사용자 정보 반환
-  res.json( user );
+  res.json(user);
 });
+
+
 
 router.patch("/", userValidationRules, validateUser, upload.single('image'), async (req: Request, res: Response) => {
   // authenticateToken 미들웨어에서 추가된 user 사용
   const user: User = req.user as User;
-  
+
   // user가 유효한지 확인
   if (!user) {
     return res.status(403).send({ message: "User not authenticated" });
@@ -52,12 +54,14 @@ router.patch("/", userValidationRules, validateUser, upload.single('image'), asy
     // 업데이트된 사용자 목록을 파일에 비동기적으로 다시 씁니다.
     await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
 
-    res.send({ message: "User profile updated successfully!" , user });
+    res.send({ message: "User profile updated successfully!", user });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "An error occurred while updating the profile" });
   }
 });
+
+
 
 router.post("/follow/", async (req: Request, res: Response) => {
   const user: User = req.user as User;
@@ -81,12 +85,18 @@ router.post("/follow/", async (req: Request, res: Response) => {
     if (userIndex === -1) {
       return res.status(404).send({ message: "User not found" });
     }
+    if (users[userIndex].follow.includes(artistId)) {
+      return res.status(409).send({ message: "User is already following the artist" });
+    }
     users[userIndex].follow = [...(users[userIndex].follow || []), artistId];
 
     // 아티스트의 followers 배열에 사용자 ID 추가
     const artistIndex = artists.findIndex(a => a.id === artistId);
     if (artistIndex === -1) {
       return res.status(404).send({ message: "Artist not found" });
+    }
+    if (artists[artistIndex].followers.includes(user.id)) {
+      return res.status(409).send({ message: "Artist already has the user as a follower" });
     }
     artists[artistIndex].followers = [...(artists[artistIndex].followers || []), user.id];
 
@@ -101,9 +111,11 @@ router.post("/follow/", async (req: Request, res: Response) => {
   }
 });
 
+
+
 router.post("/unfollow/", async (req: Request, res: Response) => {
   const user: User = req.user as User;
-  const { artistId } = req.body; // artistId를 req.body에서 구조 분해 할당
+  const { artistId } = req.body;
 
   if (!user) {
     return res.status(403).send({ message: "User not authenticated" });
@@ -114,25 +126,33 @@ router.post("/unfollow/", async (req: Request, res: Response) => {
   }
 
   try {
-    // 파일에서 사용자 목록을 비동기적으로 읽어옵니다.
     const users: User[] = JSON.parse(await fs.promises.readFile(usersFilePath, "utf8"));
     const artists: Artist[] = JSON.parse(await fs.promises.readFile(artistsFilePath, "utf8"));
 
-    // 사용자의 follow 배열에서 아티스트 ID 제거
     const userIndex = users.findIndex(u => u.id === user.id);
     if (userIndex === -1) {
       return res.status(404).send({ message: "User not found" });
     }
-    users[userIndex].follow = (users[userIndex].follow || []).filter(id => id !== artistId);
 
-    // 아티스트의 followers 배열에서 사용자 ID 제거
+    // 이미 팔로우하고 있지 않은지 확인
+    if (!users[userIndex].follow.includes(artistId)) {
+      return res.status(409).send({ message: "User is not following the artist" });
+    }
+
+    users[userIndex].follow = users[userIndex].follow.filter(id => id !== artistId);
+
     const artistIndex = artists.findIndex(a => a.id === artistId);
     if (artistIndex === -1) {
       return res.status(404).send({ message: "Artist not found" });
     }
-    artists[artistIndex].followers = (artists[artistIndex].followers || []).filter(id => id !== user.id);
 
-    // 업데이트된 사용자 목록을 파일에 비동기적으로 다시 씁니다.
+    // 이미 팔로워가 아닌지 확인
+    if (!artists[artistIndex].followers.includes(user.id)) {
+      return res.status(409).send({ message: "Artist does not have this user as a follower" });
+    }
+
+    artists[artistIndex].followers = artists[artistIndex].followers.filter(id => id !== user.id);
+
     await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     await fs.promises.writeFile(artistsFilePath, JSON.stringify(artists));
 
