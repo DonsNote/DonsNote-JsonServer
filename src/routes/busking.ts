@@ -33,13 +33,13 @@ router.get("/now/", async (req: Request, res: Response) => {
     let buskings: Busking[] = JSON.parse(buskingData);
 
     // 현재 시간에 진행 중인 버스킹들만 필터링합니다.
-    let activeBuskings = buskings.filter((busking) => {
+    let nowBuskings = buskings.filter((busking) => {
       const startTime = new Date(busking.startTime);
       const endTime = new Date(busking.endTime);
       return startTime <= now && now < endTime;
     });
 
-    res.status(200).json(activeBuskings);
+    res.status(200).json(nowBuskings);
   } catch (error) {
     // 에러 처리
     res.status(500).json({ message: "Not found Now Busking" });
