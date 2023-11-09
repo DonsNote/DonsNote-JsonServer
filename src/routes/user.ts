@@ -85,6 +85,9 @@ router.post("/follow/", async (req: Request, res: Response) => {
     if (userIndex === -1) {
       return res.status(404).send({ message: "User not found" });
     }
+
+    users[userIndex].follow = users[userIndex].follow || [];
+
     if (users[userIndex].follow.includes(artistId)) {
       return res.status(409).send({ message: "User is already following the artist" });
     }
@@ -95,6 +98,9 @@ router.post("/follow/", async (req: Request, res: Response) => {
     if (artistIndex === -1) {
       return res.status(404).send({ message: "Artist not found" });
     }
+
+    users[userIndex].follow = users[userIndex].follow || [];
+
     if (artists[artistIndex].followers.includes(user.id)) {
       return res.status(409).send({ message: "Artist already has the user as a follower" });
     }
