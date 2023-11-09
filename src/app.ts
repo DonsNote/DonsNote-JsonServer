@@ -7,6 +7,7 @@ import artistRoutes from "./routes/artist";
 import authRoutes from "./routes/auth";
 import buskingRoutes from "./routes/busking";
 import memberRoutes from "./routes/member";
+import reportRoutes from "./routes/report";
 import userRoutes from "./routes/user";
 import { authenticateToken } from "./utils/authenticateToken";
 
@@ -24,6 +25,7 @@ app.use("/users", authenticateToken, userRoutes);
 app.use("/artists", authenticateToken, artistRoutes);
 app.use("/buskings", authenticateToken, buskingRoutes);
 app.use("/members", authenticateToken, memberRoutes);
+app.use("/report", authenticateToken, reportRoutes);
 
 app.listen(3000, () => {
   console.log("DonsNote Server is running on port 3000");

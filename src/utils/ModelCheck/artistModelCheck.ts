@@ -15,6 +15,7 @@ body('soundcloudURL').optional().isString(),
 body('members').optional().isArray(),
 body('buskings').optional().isArray(),
 body('followers').optional().isArray(),
+body('block').optional().isArray(),
 ];
 
 // 검증 결과를 처리하는 미들웨어
