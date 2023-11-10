@@ -27,6 +27,10 @@ app.use("/buskings", authenticateToken, buskingRoutes);
 app.use("/members", authenticateToken, memberRoutes);
 app.use("/report", authenticateToken, reportRoutes);
 
+app.get('/', (req, res) => {
+  res.send('Welcome to the DonsNote Server!');
+});
+
 app.listen(3000, () => {
   console.log("DonsNote Server is running on port 3000");
 });
