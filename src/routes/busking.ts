@@ -97,6 +97,7 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
 
     const artists: Artist[] = JSON.parse(await fs.promises.readFile(artistFilePath, "utf8"));
     const artist = artists.find((artist) => artist.id === artistId);
+    
     if (!artist) {
       return res.status(404).json({ message: "Artist not found" });
     }
@@ -108,15 +109,23 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
     busking.artistId = artist.id
     busking.artistImageURL = artist.artistImageURL;
 
+    if (Array.isArray(artist.buskings)) {
+      artist.buskings.push(newId);
+    } else {
+      artist.buskings = [newId];
+    }
+
     buskings.push(busking);
 
     await fs.promises.writeFile(buskingFilePath, JSON.stringify(buskings), "utf8");
+    await fs.promises.writeFile(artistFilePath, JSON.stringify(artists), "utf8");
 
     res.status(201).json(busking);
   } catch (error) {
     res.status(500).json({ message: "Post Busking Fail" });
   }
 });
+
 
 
 router.delete("/", async (req: Request, res: Response) => {
