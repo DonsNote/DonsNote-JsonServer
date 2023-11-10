@@ -27,8 +27,8 @@ app.use("/buskings", authenticateToken, buskingRoutes);
 app.use("/members", authenticateToken, memberRoutes);
 app.use("/report", authenticateToken, reportRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the DonsNote Server!');
+app.get('/privacy/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Privacy_Policy.html'));
 });
 
 app.listen(3000, () => {
