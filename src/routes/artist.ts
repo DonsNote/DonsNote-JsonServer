@@ -92,6 +92,24 @@ router.get("/myArt/", async (req: Request, res: Response) => {
 });
 
 
+router.get("/blockList/", async (req: Request, res: Response) => {
+  try {
+    const user: User = req.user as User;
+
+    const blockedArtistIds = user.block;
+
+    const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
+    const allArtists: Artist[] = JSON.parse(artistsData);
+
+    const blockedArtists = allArtists.filter(artist => blockedArtistIds.includes(artist.id));
+
+    res.status(200).json(blockedArtists);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
+
 router.post("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;

@@ -68,7 +68,26 @@ router.post("/myArtBusking/", async (req: Request, res: Response) => {
 });
 
 
+router.post("/myBusking/", async (req: Request, res: Response) => {
+  try {
+    const buskingsIds = req.body.buskingsId;
 
+    if (!buskingsIds || !Array.isArray(buskingsIds)) {
+      return res.status(400).json({ message: "buskingsId must be an array of integers." });
+    }
+
+    const buskingData = await fs.promises.readFile(buskingFilePath, "utf8");
+    let buskings: Busking[] = JSON.parse(buskingData);
+
+    let matchedBuskings = buskings.filter(busking =>
+      buskingsIds.includes(busking.id)
+    );
+
+    res.status(200).json(matchedBuskings);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
 
 
 router.post("/", buskingValidationRules, validateBusking, async (req: Request, res: Response) => {

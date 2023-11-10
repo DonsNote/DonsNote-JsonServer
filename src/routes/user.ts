@@ -174,4 +174,80 @@ router.post("/unfollow/", async (req: Request, res: Response) => {
 });
 
 
+
+router.post("/block/", async (req: Request, res: Response) => {
+  const user: User = req.user as User;
+  const { artistId } = req.body;
+
+  if (!user) {
+    return res.status(403).send({ message: "User not authenticated" });
+  }
+
+  if (!artistId) {
+    return res.status(400).send({ message: "Artist ID is required" });
+  }
+
+  try {
+    const users: User[] = JSON.parse(await fs.promises.readFile(usersFilePath, "utf8"));
+
+    const userIndex = users.findIndex(u => u.id === user.id);
+    if (userIndex === -1) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    users[userIndex].block = users[userIndex].block || [];
+
+    if (users[userIndex].follow.includes(artistId)) {
+      return res.status(409).send({ message: "User is already blocking the artist" });
+    }
+    users[userIndex].block = [...(users[userIndex].block || []), artistId];
+
+    await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
+
+    res.send({ message: "Blocked artist successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "An error occurred while blocking the artist" });
+  }
+});
+
+
+
+router.post("/unblock/", async (req: Request, res: Response) => {
+  const user: User = req.user as User;
+  const { artistId } = req.body;
+
+  if (!user) {
+    return res.status(403).send({ message: "User not authenticated" });
+  }
+
+  if (!artistId) {
+    return res.status(400).send({ message: "Artist ID is required" });
+  }
+
+  try {
+    const users: User[] = JSON.parse(await fs.promises.readFile(usersFilePath, "utf8"));
+
+    const userIndex = users.findIndex(u => u.id === user.id);
+    if (userIndex === -1) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (!users[userIndex].block.includes(artistId)) {
+      return res.status(409).send({ message: "User is not blocking the artist" });
+    }
+
+    users[userIndex].block = users[userIndex].block || [];
+
+    users[userIndex].block = users[userIndex].block.filter(id => id !== artistId);
+
+    await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
+
+    res.send({ message: "Unblocked artist successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "An error occurred while unblocking the artist" });
+  }
+});
+
 export default router;
