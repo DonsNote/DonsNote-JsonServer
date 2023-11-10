@@ -97,23 +97,19 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
 
     const artists: Artist[] = JSON.parse(await fs.promises.readFile(artistFilePath, "utf8"));
     const artist = artists.find((artist) => artist.id === artistId);
-    
     if (!artist) {
       return res.status(404).json({ message: "Artist not found" });
     }
 
     const buskings = JSON.parse(await fs.promises.readFile(buskingFilePath, "utf8"));
-
     let newId = buskings.length > 0 ? buskings[buskings.length - 1].id + 1 : 1;
     busking.id = newId;
-    busking.artistId = artist.id
+    busking.artistId = artist.id;
     busking.artistImageURL = artist.artistImageURL;
 
-    if (Array.isArray(artist.buskings)) {
-      artist.buskings.push(newId);
-    } else {
-      artist.buskings = [newId];
-    }
+    // 아티스트의 buskings 배열에 newId 추가
+    artist.buskings = artist.buskings || [];
+    artist.buskings.push(newId);
 
     buskings.push(busking);
 
