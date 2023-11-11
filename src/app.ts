@@ -31,6 +31,10 @@ app.get('/privacy/', (req, res) => {
   res.sendFile(path.join(__dirname, 'Privacy_Policy.html'));
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Homecover.html'));
+});
+
 app.listen(3000, () => {
   console.log("DonsNote Server is running on port 3000");
 });

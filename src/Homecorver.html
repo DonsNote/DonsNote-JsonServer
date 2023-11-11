@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* 부모 요소 (여기서는 body)의 크기를 화면 전체로 설정 */
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 이미지를 부모 요소에 꽉 차게 설정 */
+        .full-screen-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 이미지 비율을 유지하면서 꽉 차게 표시 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 꽉 찬 이미지 표시 -->
+    <img src="HomeCover.png" class="full-screen-image" alt="Full Screen Image">
+
+</body>
+</html>
