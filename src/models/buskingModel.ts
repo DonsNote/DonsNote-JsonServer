@@ -7,7 +7,7 @@ export interface Busking {
     buskingInfo : string;
     startTime : Date;
     endTime : Date;
-    latitude : DoubleRange;
-    longitude : DoubleRange;
+    latitude : number;
+    longitude : number;
 
 }
