@@ -27,28 +27,52 @@ const membersFilePath = path.join(__dirname, '..', 'DB', 'members.json');
 const buskingsFilePath = path.join(__dirname, '..', 'DB', 'buskings.json');
 const responseFilePath = path.join(__dirname, '..', 'DB', 'auth', 'response.json');
 
+
+
 router.post("/apple-login", async (req, res) => {
   try {
     const authorizationCode = req.body.code;
+    const uid = req.body.uid;
     const appleTokenResponse = await fetchAppleTokens(authorizationCode);
-    const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
-    let newId = users.length > 0 ? users[users.length - 1].id + 1 : 1;
-    users.push({
-      id: newId,
-      artistId: null,
-      follow: [],
-      block: [],
-      userName: "User",
-      userInfo: "Hi, there!",
-      userImageURL: "https://aesopos.co.kr/images/default.png"
-    });
-    await fs.writeFile(usersFilePath, JSON.stringify(users));
 
+    const users = JSON.parse(await fs.readFile(usersFilePath, "utf8"));
     const authData = JSON.parse(await fs.readFile(authFilePath, "utf8"));
-    authData[newId] = {
-      id: newId,
-      refreshToken: appleTokenResponse.refresh_token
-    };
+
+    let userExists = false;
+    let existingUserId;
+
+    for (let key in authData) {
+      if (authData[key].uid === uid) {
+        userExists = true;
+        existingUserId = authData[key].id;
+        break;
+      }
+    }
+
+    let newId;
+    if (!userExists) {
+      newId = users.length > 0 ? users[users.length - 1].id + 1 : 1;
+      users.push({
+        id: newId,
+        artistId: null,
+        follow: [],
+        block: [],
+        userName: "User",
+        userInfo: "Hi, there!",
+        userImageURL: "https://aesopos.co.kr/images/default.png"
+      });
+      await fs.writeFile(usersFilePath, JSON.stringify(users));
+
+      authData[newId] = {
+        id: newId,
+        uid: uid,
+        refreshToken: appleTokenResponse.refresh_token
+      };
+    } else {
+      newId = existingUserId;
+      authData[newId].refreshToken = appleTokenResponse.refresh_token;
+    }
+
     await fs.writeFile(authFilePath, JSON.stringify(authData));
 
     const token = jwt.sign({ id: newId }, secret, { expiresIn: '3d' });
@@ -60,6 +84,8 @@ router.post("/apple-login", async (req, res) => {
     res.status(500).send({ message: 'Internal Server Error' });
   }
 });
+
+
 
 router.post('/apple-revoke', async (req, res) => {
   const authHeader = req.headers['authorization'];
@@ -153,6 +179,8 @@ router.post('/apple-revoke', async (req, res) => {
   }
 });
 
+
+
 router.get('/token', async (req, res) => {
   const refreshtoken = req.headers['authorization']?.split(' ')[1];
 
@@ -177,6 +205,8 @@ router.get('/token', async (req, res) => {
 });
 
 
+
+
 // apple response 받기
 router.post("/apple-response", async (req, res) => {
   try {
@@ -189,6 +219,8 @@ router.post("/apple-response", async (req, res) => {
     res.status(500).send({ message: "Error saving data" });
   }
 });
+
+
 
 async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   const clientId = process.env.CLIENT_ID;
