@@ -138,7 +138,7 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(201).json(artist);
+    res.status(201).json({ message: "Post User Artist Success" });
 
   } catch (error) {
     // 에러 처리
@@ -198,7 +198,7 @@ router.delete("/", async (req: Request, res: Response) => {
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(204).send();
+    res.status(204).json({ message: "Delete User Artist Success" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error });
   }
@@ -207,31 +207,52 @@ router.delete("/", async (req: Request, res: Response) => {
 
 
 router.patch("/", artistValidationRules, validateArtist, upload.single('image'), async (req: Request, res: Response) => {
-  const artistId = req.user?.artistId
+  const artistId = req.user?.artistId;
   const updateData = req.body;
+  let imageUpdated = false;
+
   if (req.file) {
     updateData.artistImageURL = `https://aesopos.co.kr/images/${req.file.filename}`;
+    imageUpdated = true;
   }
 
   try {
+    // 아티스트 데이터 읽기
     const artistsData = await fs.promises.readFile(artistFilePath, "utf8");
-    let artists: Artist[] = JSON.parse(artistsData);
+    let artists = JSON.parse(artistsData);
 
-    const artistIndex = artists.findIndex((artist) => artist.id === artistId);
+    // 해당 아티스트 찾기
+    const artistIndex = artists.findIndex((artist: Artist) => artist.id === artistId);
     if (artistIndex === -1) {
       return res.status(404).json({ message: "Artist not found." });
     }
 
-    // 기존 아티스트 정보를 업데이트합니다.
+    // 아티스트 정보 업데이트
     artists[artistIndex] = { ...artists[artistIndex], ...updateData };
-
     await fs.promises.writeFile(artistFilePath, JSON.stringify(artists));
 
-    res.status(200).json(artists[artistIndex]);
+    // 이미지가 업데이트된 경우에만 버스킹 데이터 업데이트
+    if (imageUpdated && artists[artistIndex].buskings) {
+      const buskingsData = await fs.promises.readFile(buskingsFilePath, "utf8");
+      let buskings = JSON.parse(buskingsData);
+
+      buskings.forEach((busking: Busking) => {
+        if (artists[artistIndex].buskings.includes(busking.id)) {
+          busking.artistImageURL = updateData.artistImageURL;
+        }
+      });
+
+      await fs.promises.writeFile(buskingsFilePath, JSON.stringify(buskings));
+    }
+
+    // 성공적으로 업데이트된 아티스트 정보 응답
+    res.status(200).json({ message: "Patch User Artist Success" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error });
   }
 });
+
+
 
 
 export default router;
