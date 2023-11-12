@@ -105,6 +105,7 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
     let newId = buskings.length > 0 ? buskings[buskings.length - 1].id + 1 : 1;
     busking.id = newId;
     busking.artistId = artist.id;
+    busking.buskingName = artist.artistName;
     busking.artistImageURL = artist.artistImageURL;
     busking.latitude = Number(req.body.latitude);
     busking.longitude = Number(req.body.longitude);
