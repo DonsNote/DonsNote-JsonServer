@@ -95,6 +95,9 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
     const artistId = req.user?.artistId;
     const busking: Busking = req.body;
 
+    busking.latitude = Number(busking.latitude);
+    busking.longitude = Number(busking.longitude);
+
     const artists: Artist[] = JSON.parse(await fs.promises.readFile(artistFilePath, "utf8"));
     const artist = artists.find((artist) => artist.id === artistId);
     if (!artist) {
