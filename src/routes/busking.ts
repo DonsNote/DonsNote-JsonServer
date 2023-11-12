@@ -107,8 +107,6 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
     busking.artistId = artist.id;
     busking.buskingName = artist.artistName;
     busking.artistImageURL = artist.artistImageURL;
-    busking.latitude = Number(req.body.latitude);
-    busking.longitude = Number(req.body.longitude);
 
     // 아티스트의 buskings 배열에 newId 추가
     artist.buskings = artist.buskings || [];
