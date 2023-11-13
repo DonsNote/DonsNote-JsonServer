@@ -105,7 +105,6 @@ router.post("/", buskingValidationRules, validateBusking, async (req: Request, r
     let newId = buskings.length > 0 ? buskings[buskings.length - 1].id + 1 : 1;
     busking.id = newId;
     busking.artistId = artist.id;
-    busking.buskingName = artist.artistName;
     busking.artistImageURL = artist.artistImageURL;
 
     // 아티스트의 buskings 배열에 newId 추가
