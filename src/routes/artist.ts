@@ -36,7 +36,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/target/", async (req: Request, res: Response) => {
+router.post("/target/", async (req: Request, res: Response) => {
   try {
     const artistId = req.body;
     if (!artistId) {
