@@ -38,7 +38,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.post("/target/", async (req: Request, res: Response) => {
   try {
-    const artistId = req.body;
+    const artistId = req.body.artistId;
     if (!artistId) {
       return res.status(400).json({ message: "Artist ID is missing from the user data." });
     }
