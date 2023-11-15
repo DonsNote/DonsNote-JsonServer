@@ -138,7 +138,7 @@ router.post("/", artistValidationRules, validateArtist, upload.single('image'), 
       await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
     }
 
-    res.status(201).json({ message: "Post User Artist Success" });
+    res.status(201).json(artist);
 
   } catch (error) {
     // 에러 처리
