@@ -182,6 +182,22 @@ router.delete("/", async (req: Request, res: Response) => {
       allBuskings = allBuskings.filter((busking : Busking) => !artist.buskings?.includes(busking.id));
       await fs.promises.writeFile(buskingsFilePath, JSON.stringify(allBuskings));
     }
+    
+    // 아티스트를 팔로워한 유저들을 검색합니다.
+    if (artist.followers) {
+      const usersData = await fs.promises.readFile(usersFilePath, "utf8");
+      let users: User[] = JSON.parse(usersData);
+  
+      // 각 팔로워의 follow 배열에서 아티스트 ID를 제거
+      artist.followers.forEach(followerId => {
+        const userIndex = users.findIndex(user => user.id === followerId);
+        if (userIndex !== -1) {
+          users[userIndex].follow = users[userIndex].follow.filter(id => id !== artistId);
+        }
+      });
+  
+      await fs.promises.writeFile(usersFilePath, JSON.stringify(users));
+    }
 
     // 아티스트를 artists 배열에서 제거합니다.
     artists = artists.filter((artist) => artist.id !== artistId);
