@@ -52,13 +52,12 @@ router.post("/apple-login", async (req, res) => {
     let newId;
     if (!userExists) {
       newId = users.length > 0 ? users[users.length - 1].id + 1 : 1;
-      const uniqueUserName = generateUniqueUserName(users);
       users.push({
         id: newId,
         artistId: null,
         follow: [],
         block: [],
-        userName: uniqueUserName,
+        userName: "User",
         userInfo: "Hi, there!",
         userImageURL: "https://aesopos.co.kr/images/default.png"
       });
@@ -243,18 +242,6 @@ async function fetchAppleTokens(authorizationCode: string): Promise<any> {
   });
 
   return response.data;
-}
-
-async function generateUniqueUserName(users : User[]): Promise<string> {
-  let unique = false;
-  let randomNum = 0;
-
-  while (!unique) {
-    randomNum = Math.floor(Math.random() * 90000000) + 10000000;
-    unique = !users.some(user => user.userName === `User${randomNum}`);
-  }
-
-  return `User${randomNum}`;
 }
 
 export default router;
