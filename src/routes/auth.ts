@@ -59,7 +59,7 @@ router.post("/apple-login", async (req, res) => {
         block: [],
         userName: "User",
         userInfo: "Hi, there!",
-        userImageURL: "https://aesopos.co.kr/images/default.png"
+        userImageURL: "https://aesopos.co.kr/images/default.jpg"
       });
       await fs.writeFile(usersFilePath, JSON.stringify(users));
 
