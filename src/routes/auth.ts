@@ -159,7 +159,7 @@ router.post('/apple-revoke', async (req, res) => {
       const updatedUsers = users.filter((user: User) => user.id !== userId);
       await fs.writeFile(usersFilePath, JSON.stringify(updatedUsers, null, 2));
 
-      res.status(200);
+      res.status(200).send({ message: 'User and refresh token have been revoked successfully.' });
     } else {
       // Apple 토큰 폐기 요청이 실패했을 경우
       res.status(revokeResponse.status).send({ message: 'Failed to revoke Apple token.' });
